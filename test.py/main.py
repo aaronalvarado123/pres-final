@@ -3,7 +3,9 @@ import io
 import pygame
 import constantes
 from personaje import Personaje
+from textos import DamageText
 from weapons import Weapons
+from items import Item
 import os
 
 def escalar_img(image, scale):
@@ -22,6 +24,15 @@ pygame.init()
 ventana = pygame.display.set_mode((constantes.ANCHO_VENTANA, constantes.ALTO_VENTANA))
 
 pygame.display.set_caption("Scooby doo pa pa y el bum bum bum bum")
+
+font = pygame.font.Font("assets/fonts/m6x11.ttf", 25)
+
+corazon_vacio = pygame.image.load("assets/images/characters/items/heart_empty.png")
+corazon_vacio = escalar_img(corazon_vacio, constantes.SCALA_CORAZON)
+corazon_mitad = pygame.image.load("assets/images/characters/items/heart_half.png")
+corazon_mitad = escalar_img(corazon_mitad, constantes.SCALA_CORAZON)
+corazon_lleno = pygame.image.load("assets/images/characters/items/heart_full.png")
+corazon_lleno = escalar_img(corazon_lleno, constantes.SCALA_CORAZON)
 
 
 animaciones = []
@@ -54,18 +65,49 @@ imagen_pistola = escalar_img(imagen_pistola, constantes.SCALA_ARMA)
 imagen_balas = pygame.image.load("assets/images/characters/weapons/bullet.png")
 imagen_balas = escalar_img(imagen_balas, constantes.SCALA_ARMA)
 
-jugador = Personaje(50, 50, animaciones)
+posion_roja = pygame.image.load("assets/images/characters/items/potion.png")
+posion_roja = escalar_img(posion_roja, 0.3)
 
-hormiga = Personaje(400, 300, animaciones_enemigos[0])
-pato = Personaje(200, 200, animaciones_enemigos[1])
+coin_images = []
+ruta_img = "assets/images/characters/coins"
+num_coin_images = contar_elementos(ruta_img)
+for i in range(num_coin_images):
+    img = pygame.image.load(f"assets/images/characters/coins/coin_{i + 1}.png")
+    img = escalar_img(img, constantes.SCALA_MONEDA)
+    coin_images.append(img)
+    
+def vida_jugador():
+    c_mitad_dibujado = False
+    for i in range(4):
+        if jugador.energia >= ((i + 1) * 25):
+            ventana.blit(corazon_lleno, (5+i*50, 5))
+        elif jugador.energia % 25 > 0 and c_mitad_dibujado == False:
+            ventana.blit(corazon_mitad, (5+i*50, 5))
+            c_mitad_dibujado = True
+        else:
+            ventana.blit(corazon_vacio, (5+i*50, 5))
+
+jugador = Personaje(50, 50, animaciones, 20)
+
+hormiga = Personaje(400, 300, animaciones_enemigos[0], 100)
+pato = Personaje(200, 200, animaciones_enemigos[1], 100)
 
 lista_enemigos = []
 lista_enemigos.append(hormiga)
 lista_enemigos.append(pato)
 
+
 pistola = Weapons(imagen_pistola, imagen_balas)
 
+grupo_damage_text = pygame.sprite.Group()
 grupo_balas = pygame.sprite.Group()
+grupo_items = pygame.sprite.Group()
+
+coin = Item(250, 25, 0, coin_images)
+potion = Item(380, 55, 1, [posion_roja])
+
+grupo_items.add(coin)
+grupo_items.add(potion)
 
 mover_arriba = False
 mover_abajo = False
@@ -103,17 +145,31 @@ while run == True:
     if bala:
         grupo_balas.add(bala)
     for bala in grupo_balas:
-        bala.update()
+        damage, pos_damage = bala.update(lista_enemigos)
+        if damage:
+            damage_text = DamageText(pos_damage.centerx, pos_damage.centery, str(damage), font, constantes.ROJO)
+            grupo_damage_text.add(damage_text)
+
+    grupo_damage_text.update()
+
+    grupo_items.update()
+
 
     jugador.dibujar(ventana)
 
     for ene in lista_enemigos:
         ene.dibujar(ventana)
 
+    grupo_damage_text.draw(ventana)
+    grupo_items.draw(ventana)
+
     pistola.dibujar(ventana)
 
     for bala in grupo_balas:
         bala.dibujar(ventana)
+
+    vida_jugador()
+    
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:

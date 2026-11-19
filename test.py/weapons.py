@@ -1,5 +1,6 @@
 import pygame
 import math
+import random
 
 import constantes
 
@@ -59,8 +60,20 @@ class Bullet(pygame.sprite.Sprite):
         self.delta_x = math.cos(math.radians(self.angulo)) * constantes.VELOCIDAD_BALA
         self.delta_y = -math.sin(math.radians(self.angulo)) * constantes.VELOCIDAD_BALA
 
-    def update(self):
+    def update(self, lista_enemigos):
+        daño = 0
+        pos_daño = None
         self.rect.x += self.delta_x
-        self.rect.y += self.delta_y 
+        self.rect.y += self.delta_y
+
+        for enemigo in lista_enemigos:
+            if enemigo.forma.colliderect(self.rect):
+                daño = 15 + random.randint(-7, 7)
+                pos_daño = enemigo.forma
+                enemigo.energia = enemigo.energia - daño
+                self.kill()
+                break
+        return daño, pos_daño
+
     def dibujar(self, interfaz):
         interfaz.blit(self.image, (self.rect.centerx, self.rect.centery - int(self.image.get_height())))
